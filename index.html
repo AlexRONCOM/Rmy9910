@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Center Aligned YouTube Video</title>
+  <style>
+    .center {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 500px;
+    }
+  </style>
+</head>
+<body>
+  <div class="center">
+    <div id="player"></div>
+    <audio id="audio" src="audio.flac"></audio>
+  </div>
+
+  <script src="https://www.youtube.com/iframe_api"></script>
+  <script>
+    var player;
+    var audio = document.getElementById('audio');
+    var seeking = false;
+
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('player', {
+        width: 1200,
+        height: 500,
+        videoId: 'Hf5enZVznC4',
+        playerVars: {
+          autoplay: 0,
+          controls: 1,
+          disablekb: 1,
+          enablejsapi: 1,
+          iv_load_policy: 3,
+          rel: 0,
+          showinfo: 0
+        },
+        events: {
+          onReady: onPlayerReady,
+          onStateChange: onPlayerStateChange
+        }
+      });
+    }
+
+    function onPlayerReady(event) {
+      player.addEventListener('timeupdate', syncAudio);
+      audio.addEventListener('timeupdate', syncVideo);
+      player.addEventListener('seeking', handleVideoSeeking);
+      audio.addEventListener('seeking', handleAudioSeeking);
+
+      // Prevent seeking when clicking on the player
+      var playerElement = document.getElementById('player');
+      playerElement.addEventListener('mousedown', preventSeeking);
+    }
+
+    function onPlayerStateChange(event) {
+      if (event.data === YT.PlayerState.PLAYING) {
+        audio.play();
+      } else {
+        audio.pause();
+      }
+    }
+
+    function syncAudio() {
+      if (player && audio && !seeking) {
+        var videoTime = player.getCurrentTime();
+        var audioTime = audio.currentTime;
+        if (Math.abs(videoTime - audioTime) > 0.1) {
+          audio.currentTime = videoTime;
+        }
+      }
+    }
+
+    function syncVideo() {
+      if (player && audio && !seeking) {
+        var videoTime = player.getCurrentTime();
+        var audioTime = audio.currentTime;
+
+        // Calculate the time difference between video and audio
+        var timeDifference = videoTime - audioTime;
+
+        // Adjust audio time if the difference is significant
+        if (Math.abs(timeDifference) > 0.1) {
+          audio.currentTime += timeDifference;
+        }
+      }
+    }
+
+    function handleVideoSeeking(event) {
+      if (seeking) {
+        // If seeking is true, prevent the seeking behavior
+        event.preventDefault();
+      } else {
+        // If seeking is false, update the audio's current time
+        audio.currentTime = player.getCurrentTime();
+      }
+    }
+
+    function handleAudioSeeking() {
+      seeking = true;
+      player.seekTo(audio.currentTime);
+    }
+
+    function handleClick(timestamp) {
+      if (player && audio) {
+        player.seekTo(timestamp);
+      }
+    }
+
+    function preventSeeking(event) {
+      // Prevent seeking by returning false
+      return false;
+    }
+
+    player.addEventListener('onStateChange', function(event) {
+      if (event.data === YT.PlayerState.PLAYING) {
+        audio.play();
+      } else {
+        audio.pause();
+      }
+    });
+
+    window.addEventListener('scroll', syncAudio);
+  </script>
+</body>
+</html>
